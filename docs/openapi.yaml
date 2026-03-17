@@ -1,0 +1,435 @@
+openapi: 3.0.3
+info:
+  title: FPS Plate Lookup API
+  version: 1.0.0
+  description: |
+    REST API for querying parking ticket status by license plate number.
+
+    Designed for integration with handheld enforcement devices, this API provides
+    real-time ticket counts and outstanding balances for vehicles across participating
+    municipalities. Enforcement officers can use this data to make escalation decisions
+    in the field.
+
+    ## Authentication
+    All plate lookup endpoints require an API key passed via the `X-API-Key` header.
+    API keys are issued per municipality or integration partner.
+
+    ## Rate Limits
+    - Plate lookup endpoints: **30 requests/minute** per API key
+    - All requests are logged for audit purposes
+
+    ## Plate Normalization
+    Plate numbers are normalized before lookup — spaces, dashes, and case are ignored.
+    For example, `ABC-1234`, `abc 1234`, and `ABC1234` all resolve to the same vehicle.
+
+  contact:
+    name: RapidFire Agency
+    url: https://rapidfireagency.com
+    email: andell@rapidfireagency.com
+
+servers:
+  - url: https://api.fps-services.com/api/v1
+    description: Production
+  - url: http://localhost:3000/api/v1
+    description: Local development
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Returns the current status of the API and database. No authentication required.
+      operationId: getHealth
+      tags: [System]
+      security: []
+      responses:
+        '200':
+          description: Service status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                service: FPS Plate Lookup API
+                version: 1.0.0
+                status: operational
+                database: healthy
+                stats:
+                  ticketsInSystem: 60432
+                timestamp: "2026-03-15T14:30:00.000Z"
+
+  /plates/{plateNumber}:
+    get:
+      summary: Plate summary lookup
+      description: |
+        Returns the ticket count and total outstanding balance for a given license plate.
+
+        This is the primary endpoint for enforcement officers. The response includes:
+        - Total number of tickets (all statuses)
+        - Number of unpaid tickets
+        - Total dollar amount owed
+        - Enforcement status flags (boot eligible, tow eligible, etc.)
+
+        **Use case:** An officer scans or enters a plate number on their handheld device.
+        The device calls this endpoint and displays whether the vehicle has outstanding
+        violations and whether escalated enforcement (boot/tow) is warranted.
+      operationId: getPlateSummary
+      tags: [Plates]
+      parameters:
+        - $ref: '#/components/parameters/PlateNumber'
+      responses:
+        '200':
+          description: Plate lookup result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlateSummaryResponse'
+              examples:
+                found_with_violations:
+                  summary: Vehicle with outstanding violations
+                  value:
+                    plate: ABC-1234
+                    normalized: ABC1234
+                    state: NY
+                    found: true
+                    tickets: 3
+                    unpaidTickets: 3
+                    totalOwed: 412.50
+                    formattedOwed: "$412.50"
+                    status: BOOT_ELIGIBLE
+                    flags:
+                      - BOOT_LIST
+                      - HIGH_BALANCE
+                    mostRecentTicket: "2024-09-10"
+                    queriedAt: "2026-03-15T14:30:00.000Z"
+                not_found:
+                  summary: No record for plate
+                  value:
+                    plate: UNKNOWN
+                    normalized: UNKNOWN
+                    found: false
+                    tickets: 0
+                    totalOwed: 0
+                    status: NO_RECORD
+                    message: No tickets found for this plate.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /plates/{plateNumber}/tickets:
+    get:
+      summary: Full ticket history
+      description: |
+        Returns the complete ticket history for a license plate, including individual
+        ticket details, fine breakdowns, and payment status.
+
+        **Use case:** After an officer sees the summary, they may want to drill into
+        the specific violations — when they were issued, where, and what type.
+      operationId: getPlateTickets
+      tags: [Plates]
+      parameters:
+        - $ref: '#/components/parameters/PlateNumber'
+      responses:
+        '200':
+          description: Ticket history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlateTicketsResponse'
+              examples:
+                with_tickets:
+                  summary: Vehicle with ticket history
+                  value:
+                    plate: ABC-1234
+                    state: NY
+                    found: true
+                    summary:
+                      totalTickets: 3
+                      totalFines: 275.00
+                      totalLateFees: 137.50
+                      totalPayments: 0
+                      totalOwed: 412.50
+                      formattedOwed: "$412.50"
+                    tickets:
+                      - ticket_number: HEMP-2024-001234
+                        violation_code: PKV-01
+                        violation_desc: Expired Meter
+                        issue_date: "2024-06-15"
+                        due_date: "2024-07-15"
+                        fine_amount: 50.00
+                        late_fee: 25.00
+                        payment_amount: 0
+                        status: UNPAID
+                        location: 123 Main St, Hempstead
+                        officer_badge: B-1234
+                        municipality: Town of Hempstead
+                        municipality_code: HEMP
+                        balance_due: 75.00
+                        formatted_balance: "$75.00"
+                    queriedAt: "2026-03-15T14:30:00.000Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key issued to your municipality or integration partner account.
+
+  parameters:
+    PlateNumber:
+      name: plateNumber
+      in: path
+      required: true
+      description: |
+        License plate number. Spaces, dashes, and case are ignored during lookup.
+        Examples: `ABC-1234`, `abc 1234`, `ABC1234` all match the same vehicle.
+      schema:
+        type: string
+        minLength: 2
+        maxLength: 10
+        example: ABC-1234
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid API key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: Unauthorized
+            message: Missing API key. Include X-API-Key header.
+
+    RateLimited:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: Rate limit exceeded
+            message: "Too many lookup requests. Limit: 30/minute."
+            retryAfter: 60 seconds
+
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        service:
+          type: string
+          example: FPS Plate Lookup API
+        version:
+          type: string
+          example: 1.0.0
+        status:
+          type: string
+          enum: [operational, degraded, down]
+        database:
+          type: string
+          enum: [healthy, error]
+        stats:
+          type: object
+          properties:
+            ticketsInSystem:
+              type: integer
+              example: 60432
+        timestamp:
+          type: string
+          format: date-time
+
+    PlateSummaryResponse:
+      type: object
+      required: [plate, found]
+      properties:
+        plate:
+          type: string
+          description: The plate number as stored in the system
+          example: ABC-1234
+        normalized:
+          type: string
+          description: Normalized plate (uppercase, no spaces/dashes)
+          example: ABC1234
+        state:
+          type: string
+          description: Vehicle registration state
+          example: NY
+        found:
+          type: boolean
+          description: Whether the plate has any records in the system
+        tickets:
+          type: integer
+          description: Total number of tickets (all statuses)
+          example: 3
+        unpaidTickets:
+          type: integer
+          description: Number of unpaid or partially paid tickets
+          example: 3
+        totalOwed:
+          type: number
+          format: float
+          description: Total outstanding balance in dollars
+          example: 412.50
+        formattedOwed:
+          type: string
+          description: Currency-formatted balance
+          example: "$412.50"
+        status:
+          type: string
+          description: |
+            Enforcement status based on ticket count and balance:
+            - `NO_RECORD` — No tickets found
+            - `CLEAR` — All tickets paid
+            - `OUTSTANDING` — Has unpaid tickets (fewer than 3)
+            - `BOOT_ELIGIBLE` — 3+ unpaid tickets (eligible for boot per NY State law)
+            - `TOW_ELIGIBLE` — Balance >= $500 (eligible for tow)
+          enum:
+            - NO_RECORD
+            - CLEAR
+            - OUTSTANDING
+            - BOOT_ELIGIBLE
+            - TOW_ELIGIBLE
+          example: BOOT_ELIGIBLE
+        flags:
+          type: array
+          description: |
+            Active enforcement flags:
+            - `BOOT_LIST` — 3+ unpaid tickets
+            - `HIGH_BALANCE` — Balance >= $200
+            - `TOW_LIST` — Balance >= $500
+          items:
+            type: string
+            enum: [BOOT_LIST, HIGH_BALANCE, TOW_LIST]
+          example: [BOOT_LIST, HIGH_BALANCE]
+        mostRecentTicket:
+          type: string
+          format: date
+          description: Issue date of the most recent ticket
+          example: "2024-09-10"
+        message:
+          type: string
+          description: Human-readable message (present when no record found)
+        queriedAt:
+          type: string
+          format: date-time
+          description: Timestamp of this query
+
+    PlateTicketsResponse:
+      type: object
+      required: [plate, found]
+      properties:
+        plate:
+          type: string
+          example: ABC-1234
+        state:
+          type: string
+          example: NY
+        found:
+          type: boolean
+        summary:
+          type: object
+          properties:
+            totalTickets:
+              type: integer
+              example: 3
+            totalFines:
+              type: number
+              format: float
+              example: 275.00
+            totalLateFees:
+              type: number
+              format: float
+              example: 137.50
+            totalPayments:
+              type: number
+              format: float
+              example: 0
+            totalOwed:
+              type: number
+              format: float
+              example: 412.50
+            formattedOwed:
+              type: string
+              example: "$412.50"
+        tickets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ticket'
+        queriedAt:
+          type: string
+          format: date-time
+
+    Ticket:
+      type: object
+      properties:
+        ticket_number:
+          type: string
+          description: "Unique ticket identifier (format: MUNICIPALITY-YEAR-SEQUENCE)"
+          example: HEMP-2024-001234
+        violation_code:
+          type: string
+          example: PKV-01
+        violation_desc:
+          type: string
+          example: Expired Meter
+        issue_date:
+          type: string
+          format: date
+          example: "2024-06-15"
+        due_date:
+          type: string
+          format: date
+          example: "2024-07-15"
+        fine_amount:
+          type: number
+          format: float
+          example: 50.00
+        late_fee:
+          type: number
+          format: float
+          example: 25.00
+        payment_amount:
+          type: number
+          format: float
+          example: 0
+        status:
+          type: string
+          enum: [UNPAID, PARTIAL, PAID, DISPUTED, DISMISSED]
+          example: UNPAID
+        location:
+          type: string
+          example: 123 Main St, Hempstead
+        officer_badge:
+          type: string
+          example: B-1234
+        municipality:
+          type: string
+          example: Town of Hempstead
+        municipality_code:
+          type: string
+          example: HEMP
+        balance_due:
+          type: number
+          format: float
+          description: Remaining balance (fine + late_fee - payment_amount)
+          example: 75.00
+        formatted_balance:
+          type: string
+          example: "$75.00"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        retryAfter:
+          type: string

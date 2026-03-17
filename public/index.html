@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FPS Plate Lookup API</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #faf8f3;
+      --bg-warm: #f3efe6;
+      --bg-code: #1e2530;
+      --surface: #ffffff;
+      --surface-alt: #eeeade;
+      --border: #e5e0d5;
+      --border-light: #ede9df;
+      --text: #1a1a1a;
+      --text-secondary: #555;
+      --text-muted: #888;
+      --accent: #2d6a4f;
+      --accent-light: #40916c;
+      --accent-bg: rgba(45,106,79,0.06);
+      --accent-border: rgba(45,106,79,0.15);
+      --success: #059669;
+      --success-bg: rgba(5,150,105,0.08);
+      --warning: #d97706;
+      --warning-bg: rgba(217,119,6,0.08);
+      --danger: #dc2626;
+      --danger-bg: rgba(220,38,38,0.06);
+      --danger-light: #ef4444;
+      --purple: #7c3aed;
+      --purple-bg: rgba(124,58,237,0.06);
+      --orange: #ea580c;
+      --orange-bg: rgba(234,88,12,0.06);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --radius-xs: 6px;
+      --navbar-h: 64px;
+      --ease: cubic-bezier(0.4, 0, 0.2, 1);
+      --spring: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Navbar ── */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--navbar-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 1.5rem;
+      gap: 1rem;
+      z-index: 100;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text);
+      flex-shrink: 0;
+    }
+    .nav-logo {
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+    .nav-version {
+      font-size: 0.7rem;
+      font-weight: 600;
+      background: var(--bg-warm);
+      border: 1px solid var(--border);
+      padding: 0.2rem 0.6rem;
+      border-radius: 100px;
+      color: var(--text-secondary);
+    }
+    .nav-spacer { flex: 1; }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .nav-link {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 0.4rem 0.75rem;
+      border-radius: var(--radius-sm);
+      transition: color 0.2s var(--ease), background 0.2s var(--ease);
+    }
+    .nav-link:hover { color: var(--text); background: var(--bg); }
+    .nav-link.active { color: var(--accent); background: var(--accent-bg); font-weight: 600; }
+    .nav-link.primary {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+    .nav-link.primary:hover { background: var(--accent-light); }
+
+    /* ── Page ── */
+    .page {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: calc(var(--navbar-h) + 2.5rem) 1.5rem 4rem;
+    }
+
+    /* ── Header ── */
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+      animation: fadeIn 0.5s var(--spring);
+    }
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--accent-bg);
+      border: 1px solid var(--accent-border);
+      border-radius: 100px;
+      padding: 0.35rem 1rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    .header-badge svg { flex-shrink: 0; }
+    .header h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.15;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+    .header p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 440px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    /* ── Search card ── */
+    .search-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      margin-bottom: 1.5rem;
+      animation: slideUp 0.45s var(--spring);
+    }
+    .search-row {
+      display: flex;
+      gap: 0.75rem;
+    }
+    .input-wrap {
+      flex: 1;
+      position: relative;
+    }
+    .input-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+      transition: color 0.2s var(--ease);
+    }
+    .input-wrap:focus-within .input-icon { color: var(--accent); }
+    .search-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.9rem 1rem 0.9rem 2.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.05rem;
+      font-weight: 500;
+      color: var(--text);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+    }
+    .search-input::placeholder {
+      font-family: 'Inter', sans-serif;
+      text-transform: none;
+      letter-spacing: normal;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-bg);
+    }
+    .search-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 0 1.75rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      white-space: nowrap;
+    }
+    .search-btn:hover { background: var(--accent-light); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(45,106,79,0.2); }
+    .search-btn:active { transform: translateY(0); }
+    .search-btn:disabled { background: var(--border); cursor: not-allowed; transform: none; box-shadow: none; }
+    .search-btn svg { transition: transform 0.2s var(--ease); }
+    .search-btn:not(:disabled):hover svg { transform: translateX(2px); }
+
+    /* ── Quick picks ── */
+    .quick-section { margin-top: 1.25rem; }
+    .quick-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.5rem;
+    }
+    .quick-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xs);
+      padding: 0.4rem 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
+    }
+    .chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+    .chip-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.62rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0;
+    }
+
+    /* ── Results panel ── */
+    .results-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      animation: slideUp 0.4s var(--spring);
+    }
+
+    /* ── Plate header ── */
+    .plate-header {
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      border-bottom: 1px solid var(--border-light);
+      background: var(--bg);
+    }
+    .plate-id {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .plate-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 0.4rem 1rem;
+      border-radius: var(--radius-xs);
+      color: var(--text);
+    }
+    .plate-state {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── Status pills ── */
+    .status-pill {
+      padding: 0.4rem 0.9rem;
+      border-radius: 100px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .status-CLEAR { background: var(--success-bg); color: var(--success); border: 1px solid rgba(5,150,105,0.15); }
+    .status-NO_RECORD { background: var(--bg-warm); color: var(--text-muted); border: 1px solid var(--border); }
+    .status-OUTSTANDING { background: var(--warning-bg); color: var(--warning); border: 1px solid rgba(217,119,6,0.15); }
+    .status-BOOT_ELIGIBLE { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(220,38,38,0.12); }
+    .status-TOW_ELIGIBLE { background: rgba(220,38,38,0.1); color: #b91c1c; border: 1px solid rgba(220,38,38,0.2); }
+
+    /* ── Vehicle bar ── */
+    .vehicle-bar {
+      padding: 0.75rem 1.5rem;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.5rem;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+    .v-item { display: flex; align-items: center; gap: 0.35rem; }
+    .v-item svg { flex-shrink: 0; opacity: 0.45; }
+    .v-value { color: var(--text-secondary); font-weight: 600; }
+
+    /* ── Stats grid ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-bottom: 1px solid var(--border-light);
+    }
+    .stat-cell {
+      text-align: center;
+      padding: 1.25rem 0.75rem;
+      border-right: 1px solid var(--border-light);
+      transition: background 0.2s var(--ease);
+    }
+    .stat-cell:last-child { border-right: none; }
+    .stat-cell:hover { background: var(--bg); }
+    .stat-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.6rem;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 0.35rem;
+      color: var(--text);
+    }
+    .stat-num.danger { color: var(--danger); }
+    .stat-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* ── Flags row ── */
+    .flags-row {
+      padding: 0.75rem 1.5rem;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .flags-label {
+      font-size: 0.62rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-right: 0.25rem;
+    }
+    .flag-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.3rem 0.65rem;
+      border-radius: 100px;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      transition: transform 0.15s var(--ease);
+    }
+    .flag-pill:hover { transform: scale(1.04); }
+    .flag-pill svg { width: 10px; height: 10px; }
+    .flag-pill.red { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(220,38,38,0.12); }
+    .flag-pill.orange { background: var(--orange-bg); color: var(--orange); border: 1px solid rgba(234,88,12,0.12); }
+    .flag-pill.purple { background: var(--purple-bg); color: var(--purple); border: 1px solid rgba(124,58,237,0.12); }
+
+    /* ── Tickets section ── */
+    .tickets-section {
+      padding: 1.25rem 1.5rem 1.5rem;
+    }
+    .section-title {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .count-badge {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 0.12rem 0.5rem;
+      border-radius: 100px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--text-secondary);
+    }
+
+    /* ── Ticket cards ── */
+    .ticket-card {
+      background: var(--bg);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.25rem;
+      margin-bottom: 0.625rem;
+      transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+    }
+    .ticket-card:hover { border-color: var(--border); box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+    .ticket-card:last-child { margin-bottom: 0; }
+
+    .ticket-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.75rem;
+      margin-bottom: 0.625rem;
+    }
+    .ticket-left { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+    .ticket-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .ticket-violation {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .ticket-vtl {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .ticket-amount { text-align: right; flex-shrink: 0; }
+    .ticket-amount .amount {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+    .ticket-amount .amount.unpaid { color: var(--danger); }
+    .ticket-amount .amount.paid { color: var(--success); }
+    .ticket-amount .amount.judgment { color: #b91c1c; }
+    .ticket-amount .amount.dismissed { color: var(--text-muted); }
+    .ticket-amount .amount.disputed { color: var(--warning); }
+    .ticket-amount .amount-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 0.1rem;
+    }
+    .ticket-amount .amount-label.unpaid { color: rgba(220,38,38,0.5); }
+    .ticket-amount .amount-label.paid { color: rgba(5,150,105,0.5); }
+    .ticket-amount .amount-label.judgment { color: rgba(185,28,28,0.5); }
+    .ticket-amount .amount-label.dismissed { color: var(--text-muted); }
+    .ticket-amount .amount-label.disputed { color: rgba(217,119,6,0.5); }
+
+    .ticket-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 1rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+    .meta-item { display: flex; align-items: center; gap: 0.3rem; }
+    .meta-item svg { flex-shrink: 0; width: 13px; height: 13px; opacity: 0.4; }
+
+    .inline-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.2rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.58rem;
+      font-weight: 700;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      vertical-align: middle;
+    }
+    .inline-tag.dmv { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(220,38,38,0.12); }
+    .inline-tag.judgment { background: var(--orange-bg); color: var(--orange); border: 1px solid rgba(234,88,12,0.12); }
+
+    /* ── Empty & Loading states ── */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 2rem;
+    }
+    .empty-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+    }
+    .empty-state h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.35rem; }
+    .empty-state p { font-size: 0.88rem; color: var(--text-muted); }
+
+    .loading-state {
+      text-align: center;
+      padding: 3rem 2rem;
+    }
+    .spinner-ring {
+      width: 28px;
+      height: 28px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-state p { font-size: 0.88rem; color: var(--text-muted); }
+
+    /* ── API footer ── */
+    .api-section {
+      margin-top: 2rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      animation: slideUp 0.5s var(--spring) 0.1s both;
+    }
+    .api-header {
+      padding: 0.85rem 1.5rem;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .api-header h3 {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .api-header a {
+      font-size: 0.78rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s var(--ease);
+    }
+    .api-header a:hover { color: var(--accent-light); }
+    .api-endpoints { padding: 0.5rem 1.5rem; }
+    .api-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.55rem 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    .api-row + .api-row { border-top: 1px solid var(--border-light); }
+    .api-method {
+      font-size: 0.62rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+      background: var(--success-bg);
+      color: var(--success);
+    }
+    .api-path .param { color: var(--accent); }
+
+    /* ── Footer ── */
+    .site-footer {
+      text-align: center;
+      padding: 2.5rem 1rem 1rem;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      animation: fadeIn 0.6s var(--spring) 0.2s both;
+    }
+    .site-footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .site-footer a:hover { color: var(--accent-light); }
+    .footer-divider {
+      width: 40px;
+      height: 1px;
+      background: var(--border);
+      margin: 0 auto 1rem;
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .page { padding: calc(var(--navbar-h) + 1.5rem) 1rem 3rem; }
+      .header h1 { font-size: 1.65rem; }
+      .header p { font-size: 0.9rem; }
+      .search-card { padding: 1rem; }
+      .search-row { flex-direction: column; }
+      .search-btn { justify-content: center; padding: 0.875rem; }
+      .plate-header { flex-direction: column; align-items: flex-start; padding: 1rem; }
+      .plate-tag { font-size: 1.1rem; }
+      .vehicle-bar { padding: 0.75rem 1rem; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .stat-cell { padding: 1rem 0.5rem; }
+      .stat-cell:nth-child(2) { border-right: none; }
+      .stat-cell:nth-child(1), .stat-cell:nth-child(2) { border-bottom: 1px solid var(--border-light); }
+      .stat-num { font-size: 1.35rem; }
+      .flags-row { padding: 0.75rem 1rem; }
+      .tickets-section { padding: 1rem; }
+      .ticket-card { padding: 0.875rem 1rem; }
+      .ticket-top { flex-direction: column; }
+      .ticket-amount { text-align: left; display: flex; align-items: baseline; gap: 0.5rem; }
+      .ticket-amount .amount-label { margin-top: 0; }
+      .api-endpoints { padding: 0.5rem 1rem; }
+    }
+
+    @media (max-width: 380px) {
+      .plate-tag { font-size: 1rem; padding: 0.35rem 0.75rem; }
+      .chip { font-size: 0.7rem; padding: 0.35rem 0.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="/api/demo" class="nav-brand">
+      <span class="nav-logo">FPS API</span>
+      <span class="nav-version">v1.0.0</span>
+    </a>
+    <div class="nav-spacer"></div>
+    <div class="nav-links">
+      <a href="/" class="nav-link">Home</a>
+      <a href="/api/demo" class="nav-link active">API Demo</a>
+      <a href="/docs" class="nav-link">Docs</a>
+      <a href="/swagger" class="nav-link">Swagger</a>
+      <a href="https://rapidfireagency.com" class="nav-link primary">RapidFire</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Enforcement API v1.0
+      </div>
+      <h1>FPS Plate Lookup</h1>
+      <p>Real-time ticket status and enforcement intelligence for field officers</p>
+    </div>
+
+    <!-- Search -->
+    <div class="search-card">
+      <div class="search-row">
+        <div class="input-wrap">
+          <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" class="search-input" id="plateInput" placeholder="Enter license plate..." maxlength="10" autocomplete="off" spellcheck="false">
+        </div>
+        <button class="search-btn" id="searchBtn" onclick="lookupPlate()">
+          Lookup
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </button>
+      </div>
+      <div class="quick-section">
+        <div class="quick-label">Sample plates</div>
+        <div class="quick-grid">
+          <span class="chip" onclick="quickSearch('KAB-3291')">KAB-3291 <span class="chip-label">Boot</span></span>
+          <span class="chip" onclick="quickSearch('KSS-7744')">KSS-7744 <span class="chip-label">Tow + DMV</span></span>
+          <span class="chip" onclick="quickSearch('LAC-1190')">LAC-1190 <span class="chip-label">Tow</span></span>
+          <span class="chip" onclick="quickSearch('U38-KBN')">U38-KBN <span class="chip-label">NJ</span></span>
+          <span class="chip" onclick="quickSearch('KHN-4456')">KHN-4456 <span class="chip-label">Clear</span></span>
+          <span class="chip" onclick="quickSearch('MCE-5532')">MCE-5532 <span class="chip-label">None</span></span>
+          <span class="chip" onclick="quickSearch('DEMO-123')">DEMO-123 <span class="chip-label">Demo</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results"></div>
+
+    <!-- API endpoints -->
+    <div class="api-section">
+      <div class="api-header">
+        <h3>API Endpoints</h3>
+        <a href="/docs">View full docs</a>
+      </div>
+      <div class="api-endpoints">
+        <div class="api-row">
+          <span class="api-method">GET</span>
+          <span class="api-path">/api/v1/plates/<span class="param">{plate}</span></span>
+        </div>
+        <div class="api-row">
+          <span class="api-method">GET</span>
+          <span class="api-path">/api/v1/plates/<span class="param">{plate}</span>/tickets</span>
+        </div>
+        <div class="api-row">
+          <span class="api-method">GET</span>
+          <span class="api-path">/api/v1/health</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="site-footer">
+      <div class="footer-divider"></div>
+      Built by <a href="https://rapidfireagency.com">RapidFire Agency</a>
+    </div>
+  </div>
+
+  <script>
+    const API_KEY = 'fps-demo-key-2024';
+    const plateInput = document.getElementById('plateInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const resultsDiv = document.getElementById('results');
+
+    plateInput.addEventListener('keydown', e => { if (e.key === 'Enter') lookupPlate(); });
+
+    function quickSearch(plate) {
+      plateInput.value = plate;
+      lookupPlate();
+    }
+
+    async function lookupPlate() {
+      const plate = plateInput.value.trim();
+      if (!plate) { plateInput.focus(); return; }
+
+      searchBtn.disabled = true;
+      resultsDiv.innerHTML = '<div class="results-panel"><div class="loading-state"><div class="spinner-ring"></div><p>Searching records...</p></div></div>';
+
+      try {
+        const [summaryRes, ticketsRes] = await Promise.all([
+          fetch('/api/v1/plates/' + encodeURIComponent(plate), { headers: { 'X-API-Key': API_KEY } }),
+          fetch('/api/v1/plates/' + encodeURIComponent(plate) + '/tickets', { headers: { 'X-API-Key': API_KEY } })
+        ]);
+        const summary = await summaryRes.json();
+        const ticketData = await ticketsRes.json();
+
+        if (!summary.found || summary.status === 'NO_RECORD') {
+          renderEmpty(summary);
+        } else {
+          renderResults(summary, ticketData);
+        }
+      } catch (err) {
+        console.error(err);
+        resultsDiv.innerHTML = '<div class="results-panel"><div class="empty-state"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg></div><h3 style="color:var(--danger)">Connection Error</h3><p>Could not reach the API. Is the server running?</p></div></div>';
+      }
+      searchBtn.disabled = false;
+    }
+
+    function renderEmpty(summary) {
+      const hasVehicle = summary.found && summary.vehicle?.make;
+      const vBar = hasVehicle ? vehicleBar(summary) : '';
+      resultsDiv.innerHTML = `
+        <div class="results-panel">
+          <div class="plate-header">
+            <div class="plate-id">
+              <span class="plate-tag">${esc(summary.plate || summary.normalized)}</span>
+              ${summary.state ? '<span class="plate-state">' + esc(summary.state) + '</span>' : ''}
+            </div>
+            <span class="status-pill status-${hasVehicle ? 'CLEAR' : 'NO_RECORD'}">${hasVehicle ? 'Clear' : 'No Record'}</span>
+          </div>
+          ${vBar}
+          <div class="empty-state">
+            <div class="empty-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${hasVehicle ? 'var(--success)' : 'var(--text-muted)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+            </div>
+            <h3>${hasVehicle ? 'No outstanding violations' : 'Plate not in system'}</h3>
+            <p>${hasVehicle ? 'This vehicle has no tickets on record.' : 'No records found matching this plate number.'}</p>
+          </div>
+        </div>`;
+    }
+
+    function vehicleBar(summary) {
+      const v = summary.vehicle || {};
+      if (!v.make) return '';
+      return `
+        <div class="vehicle-bar">
+          <div class="v-item">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M17 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M5 17H3v-6l2-5h9l4 5h1a2 2 0 0 1 2 2v4h-2m-4 0H9"/></svg>
+            <span class="v-value">${esc(v.color)} ${v.year} ${esc(v.make)} ${esc(v.model)}</span>
+          </div>
+          <div class="v-item">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>Reg expires <span class="v-value">${esc(v.registrationExpires)}</span></span>
+          </div>
+          ${summary.plateType ? '<div class="v-item"><span>Type <span class="v-value">' + esc(summary.plateType) + '</span></span></div>' : ''}
+        </div>`;
+    }
+
+    function flagColor(f) {
+      if (f === 'DMV_HOLD') return 'purple';
+      if (f === 'JUDGMENTS_OUTSTANDING') return 'orange';
+      return 'red';
+    }
+
+    function flagIcon(f) {
+      if (f === 'DMV_HOLD') return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
+      if (f === 'TOW_LIST') return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/></svg>';
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    }
+
+    function renderResults(summary, ticketData) {
+      const flags = summary.flags || [];
+
+      const flagsHtml = flags.length > 0 ? `
+        <div class="flags-row">
+          <span class="flags-label">Alerts</span>
+          ${flags.map(f => `<span class="flag-pill ${flagColor(f)}">${flagIcon(f)} ${f.replaceAll('_', ' ')}</span>`).join('')}
+        </div>` : '';
+
+      const ticketsHtml = ticketData.tickets.map(t => {
+        const s = t.status;
+        const isPaid = s === 'PAID' || s === 'DISMISSED';
+        const sc = s === 'PAID' ? 'paid' : s === 'DISMISSED' ? 'dismissed' : s === 'JUDGMENT' ? 'judgment' : s === 'DISPUTED' ? 'disputed' : 'unpaid';
+        const amtText = isPaid ? (s === 'PAID' ? 'Paid' : 'Dismissed') : t.formatted_balance;
+        const label = isPaid ? s.charAt(0) + s.slice(1).toLowerCase() : (s === 'JUDGMENT' ? 'Judgment' : s === 'DISPUTED' ? 'Disputed' : 'Balance due');
+
+        const tags = [];
+        if (t.dmv_reported) tags.push('<span class="inline-tag dmv">DMV</span>');
+        if (s === 'JUDGMENT' && !t.dmv_reported) tags.push('<span class="inline-tag judgment">Judgment</span>');
+
+        return `
+          <div class="ticket-card">
+            <div class="ticket-top">
+              <div class="ticket-left">
+                <div class="ticket-num">${esc(t.ticket_number)} ${tags.join('')}</div>
+                <div class="ticket-violation">${esc(t.violation_desc)} <span class="ticket-vtl">${esc(t.violation_code)}</span></div>
+              </div>
+              <div class="ticket-amount">
+                <div class="amount ${sc}">${amtText}</div>
+                <div class="amount-label ${sc}">${label}</div>
+              </div>
+            </div>
+            <div class="ticket-meta-row">
+              <span class="meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>${esc(t.location)}</span>
+              <span class="meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${esc(t.issue_date)}${t.issue_time ? ' ' + esc(t.issue_time) : ''}</span>
+              <span class="meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>${esc(t.municipality)}${t.county ? ' (' + esc(t.county) + ')' : ''}</span>
+            </div>
+          </div>`;
+      }).join('');
+
+      resultsDiv.innerHTML = `
+        <div class="results-panel">
+          <div class="plate-header">
+            <div class="plate-id">
+              <span class="plate-tag">${esc(summary.plate)}</span>
+              <span class="plate-state">${esc(summary.state)}</span>
+            </div>
+            <span class="status-pill status-${summary.status}">${summary.status.replaceAll('_', ' ')}</span>
+          </div>
+          ${vehicleBar(summary)}
+          <div class="stats-grid">
+            <div class="stat-cell"><div class="stat-num">${summary.tickets}</div><div class="stat-label">Total</div></div>
+            <div class="stat-cell"><div class="stat-num">${summary.unpaidTickets}</div><div class="stat-label">Unpaid</div></div>
+            <div class="stat-cell"><div class="stat-num">${summary.judgmentTickets || 0}</div><div class="stat-label">Judgment</div></div>
+            <div class="stat-cell"><div class="stat-num danger">${summary.formattedOwed}</div><div class="stat-label">Balance</div></div>
+          </div>
+          ${flagsHtml}
+          <div class="tickets-section">
+            <div class="section-title">Ticket history <span class="count-badge">${ticketData.tickets.length}</span></div>
+            ${ticketsHtml}
+          </div>
+        </div>`;
+    }
+
+    function esc(s) {
+      if (s == null) return '';
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+  </script>
+</body>
+</html>

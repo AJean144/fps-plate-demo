@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FPS Database Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #faf9f6;
+      --bg-warm: #f3efe6;
+      --surface: #ffffff;
+      --border: #e4dfd5;
+      --border-light: #edead2;
+      --text: #1a1a1a;
+      --text-sec: #555;
+      --text-muted: #999;
+      --accent: #2d6a4f;
+      --accent-bg: rgba(45,106,79,0.06);
+      --accent-border: rgba(45,106,79,0.15);
+      --gold: #c9952d;
+      --gold-bg: rgba(201,149,45,0.08);
+      --blue: #3b82f6;
+      --blue-bg: rgba(59,130,246,0.06);
+      --red: #dc2626;
+      --code-bg: #1e2530;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Layout */
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .top-bar h1 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .top-bar h1 svg { color: var(--accent); }
+    .top-bar-links {
+      margin-left: auto;
+      display: flex;
+      gap: 0.5rem;
+    }
+    .top-bar-link {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-sec);
+      text-decoration: none;
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      transition: background 0.15s;
+    }
+    .top-bar-link:hover { background: var(--bg); color: var(--text); }
+
+    .layout {
+      display: flex;
+      min-height: calc(100vh - 56px);
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 1.25rem 0;
+      overflow-y: auto;
+      position: sticky;
+      top: 56px;
+      height: calc(100vh - 56px);
+    }
+    .sidebar-label {
+      font-size: 0.62rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+    .table-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.55rem 1.25rem;
+      background: none;
+      border: none;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text-sec);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s;
+    }
+    .table-btn:hover { background: var(--bg); color: var(--text); }
+    .table-btn.active { background: var(--accent-bg); color: var(--accent); font-weight: 600; }
+    .table-count {
+      font-size: 0.68rem;
+      background: var(--bg-warm);
+      border: 1px solid var(--border);
+      padding: 0.1rem 0.45rem;
+      border-radius: 100px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .table-btn.active .table-count {
+      background: var(--accent-bg);
+      border-color: var(--accent-border);
+      color: var(--accent);
+    }
+    .sidebar-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 1rem 1.25rem;
+    }
+    .query-link {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 1.25rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-sec);
+      cursor: pointer;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      transition: all 0.15s;
+    }
+    .query-link:hover { background: var(--bg); color: var(--text); }
+    .query-link.active { background: var(--blue-bg); color: var(--blue); }
+    .query-link svg { opacity: 0.5; }
+    .query-link.active svg { opacity: 1; }
+
+    /* Main */
+    .main {
+      flex: 1;
+      padding: 1.5rem 2rem;
+      overflow-x: auto;
+    }
+
+    /* Table info header */
+    .table-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .table-header h2 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .row-count-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: var(--gold-bg);
+      color: var(--gold);
+      padding: 0.25rem 0.65rem;
+      border-radius: 100px;
+      border: 1px solid rgba(201,149,45,0.15);
+    }
+
+    /* Schema section */
+    .schema-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+    .schema-header {
+      padding: 0.75rem 1.25rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    .schema-header svg { transition: transform 0.2s; }
+    .schema-header.collapsed svg { transform: rotate(-90deg); }
+    .schema-body { padding: 0; }
+    .schema-body.collapsed { display: none; }
+
+    /* Data table */
+    .data-table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .data-table-header {
+      padding: 0.75rem 1.25rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    th {
+      text-align: left;
+      padding: 0.6rem 0.85rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 2px solid var(--border);
+      background: var(--bg);
+      position: sticky;
+      top: 0;
+      white-space: nowrap;
+    }
+    td {
+      padding: 0.5rem 0.85rem;
+      border-bottom: 1px solid var(--border-light);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--text-sec);
+      white-space: nowrap;
+      max-width: 280px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    tr:hover td { background: var(--bg); }
+    tr:last-child td { border-bottom: none; }
+    td.null { color: var(--text-muted); font-style: italic; }
+    td.num { color: var(--gold); }
+    td.pk { color: var(--accent); font-weight: 600; }
+
+    /* Column type badges */
+    .col-type {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      background: var(--bg-warm);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .col-pk {
+      font-size: 0.55rem;
+      font-weight: 700;
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+      background: var(--accent-bg);
+      color: var(--accent);
+      border: 1px solid var(--accent-border);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .col-nn {
+      font-size: 0.55rem;
+      font-weight: 700;
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+      background: rgba(220,38,38,0.05);
+      color: var(--red);
+      border: 1px solid rgba(220,38,38,0.1);
+      text-transform: uppercase;
+    }
+
+    /* Query editor */
+    .query-editor {
+      margin-bottom: 1.5rem;
+    }
+    .query-area {
+      width: 100%;
+      background: var(--code-bg);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.25rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: #d8dee9;
+      resize: vertical;
+      min-height: 100px;
+      line-height: 1.6;
+    }
+    .query-area:focus { outline: none; border-color: var(--accent); }
+    .query-area::placeholder { color: rgba(255,255,255,0.25); }
+    .query-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+    }
+    .run-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 0.6rem 1.25rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: background 0.15s;
+    }
+    .run-btn:hover { background: #40916c; }
+    .query-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .query-error {
+      margin-top: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: rgba(220,38,38,0.05);
+      border: 1px solid rgba(220,38,38,0.12);
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      color: var(--red);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Sample queries */
+    .sample-queries {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.75rem;
+    }
+    .sample-q {
+      font-size: 0.72rem;
+      font-weight: 500;
+      background: var(--bg-warm);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 0.3rem 0.7rem;
+      color: var(--text-sec);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .sample-q:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1.25rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .page-btns { display: flex; gap: 0.35rem; }
+    .page-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.35rem 0.65rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-sec);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .page-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <h1>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      Database Explorer
+    </h1>
+    <div class="top-bar-links">
+      <a href="/" class="top-bar-link">Home</a>
+      <a href="/api/demo" class="top-bar-link">API Demo</a>
+      <a href="/docs" class="top-bar-link">Docs</a>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main" id="main">
+      <div style="text-align:center;padding:4rem 2rem;color:var(--text-muted)">
+        <p>Loading tables...</p>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    let tables = [];
+    let currentView = null;
+
+    // Load tables
+    async function init() {
+      const res = await fetch('/api/admin/tables');
+      tables = await res.json();
+      renderSidebar();
+      // Show first table by default
+      if (tables.length) showTable(tables[0].name);
+    }
+
+    function renderSidebar() {
+      const sb = document.getElementById('sidebar');
+      sb.innerHTML = `
+        <div class="sidebar-label">Tables (${tables.length})</div>
+        ${tables.map(t => `
+          <button class="table-btn" id="tb-${t.name}" onclick="showTable('${t.name}')">
+            ${t.name}
+            <span class="table-count">${t.rowCount}</span>
+          </button>
+        `).join('')}
+        <div class="sidebar-divider"></div>
+        <button class="query-link" id="tb-query" onclick="showQueryEditor()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          SQL Query
+        </button>
+      `;
+    }
+
+    function setActive(name) {
+      document.querySelectorAll('.table-btn, .query-link').forEach(b => b.classList.remove('active'));
+      const el = document.getElementById('tb-' + name);
+      if (el) el.classList.add('active');
+    }
+
+    async function showTable(name, offset = 0) {
+      currentView = { type: 'table', name, offset };
+      setActive(name);
+
+      const tableInfo = tables.find(t => t.name === name);
+      const res = await fetch('/api/admin/tables/' + name + '?limit=50&offset=' + offset);
+      const data = await res.json();
+
+      const schemaRows = tableInfo.columns.map(c => `
+        <tr>
+          <td class="pk" style="font-weight:600">${c.name}</td>
+          <td><span class="col-type">${c.type || 'ANY'}</span></td>
+          <td>${c.pk ? '<span class="col-pk">PK</span>' : ''}${c.notnull ? ' <span class="col-nn">NOT NULL</span>' : ''}</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--text-muted)">${c.defaultValue !== null ? c.defaultValue : ''}</td>
+        </tr>
+      `).join('');
+
+      const dataRows = data.rows.map((row, i) => `
+        <tr>
+          ${row.map((val, ci) => {
+            if (val === null) return '<td class="null">NULL</td>';
+            if (typeof val === 'number') return '<td class="num">' + val + '</td>';
+            if (ci === 0 && tableInfo.columns[0]?.pk) return '<td class="pk">' + esc(val) + '</td>';
+            return '<td>' + esc(String(val)) + '</td>';
+          }).join('')}
+        </tr>
+      `).join('');
+
+      const totalPages = Math.ceil(data.totalRows / 50);
+      const currentPage = Math.floor(offset / 50) + 1;
+
+      document.getElementById('main').innerHTML = `
+        <div class="table-header">
+          <h2>${name}</h2>
+          <span class="row-count-badge">${data.totalRows} rows</span>
+        </div>
+
+        <div class="schema-card">
+          <div class="schema-header" onclick="toggleSchema(this)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            Schema &middot; ${tableInfo.columns.length} columns
+          </div>
+          <div class="schema-body">
+            <table>
+              <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Default</th></tr></thead>
+              <tbody>${schemaRows}</tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="data-table-wrap">
+          <div class="data-table-header">Data</div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr>${data.columns.map(c => '<th>' + c + '</th>').join('')}</tr></thead>
+              <tbody>${dataRows || '<tr><td colspan="100" style="text-align:center;padding:2rem;color:var(--text-muted)">No data</td></tr>'}</tbody>
+            </table>
+          </div>
+          ${data.totalRows > 50 ? `
+            <div class="pagination">
+              <span>Page ${currentPage} of ${totalPages}</span>
+              <div class="page-btns">
+                <button class="page-btn" onclick="showTable('${name}', ${Math.max(0, offset - 50)})" ${offset === 0 ? 'disabled' : ''}>Prev</button>
+                <button class="page-btn" onclick="showTable('${name}', ${offset + 50})" ${offset + 50 >= data.totalRows ? 'disabled' : ''}>Next</button>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function toggleSchema(header) {
+      header.classList.toggle('collapsed');
+      header.nextElementSibling.classList.toggle('collapsed');
+    }
+
+    function showQueryEditor() {
+      currentView = { type: 'query' };
+      setActive('query');
+
+      document.getElementById('main').innerHTML = `
+        <div class="table-header">
+          <h2 style="font-family:'DM Sans',sans-serif">SQL Query Editor</h2>
+        </div>
+
+        <div class="query-editor">
+          <textarea class="query-area" id="queryInput" placeholder="SELECT * FROM tickets WHERE status = 'UNPAID' LIMIT 20" spellcheck="false"></textarea>
+          <div class="query-bar">
+            <button class="run-btn" onclick="runQuery()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Run Query
+            </button>
+            <span class="query-meta" id="queryMeta"></span>
+          </div>
+          <div class="sample-queries">
+            <span class="sample-q" onclick="setQuery(\`SELECT v.plate_number, v.state, v.make, v.model, v.color, COUNT(t.id) as ticket_count, SUM(t.fine_amount + t.late_fee - t.payment_amount) as total_owed FROM vehicles v LEFT JOIN tickets t ON v.id = t.vehicle_id GROUP BY v.id ORDER BY total_owed DESC LIMIT 10\`)">Top 10 balances</span>
+            <span class="sample-q" onclick="setQuery(\`SELECT m.name, m.county, COUNT(t.id) as tickets FROM municipalities m JOIN tickets t ON m.id = t.municipality_id GROUP BY m.id ORDER BY tickets DESC\`)">Tickets by municipality</span>
+            <span class="sample-q" onclick="setQuery(\`SELECT violation_code, violation_desc, COUNT(*) as count, SUM(fine_amount) as total_fines FROM tickets GROUP BY violation_code ORDER BY count DESC\`)">Top violations</span>
+            <span class="sample-q" onclick="setQuery(\`SELECT * FROM tickets WHERE dmv_reported = 1\`)">DMV reported</span>
+            <span class="sample-q" onclick="setQuery(\`SELECT * FROM violation_codes ORDER BY default_fine DESC\`)">Violation fines</span>
+            <span class="sample-q" onclick="setQuery(\`SELECT status, COUNT(*) as count, SUM(fine_amount + late_fee - payment_amount) as balance FROM tickets GROUP BY status\`)">Status breakdown</span>
+          </div>
+          <div id="queryError"></div>
+        </div>
+        <div id="queryResults"></div>
+      `;
+    }
+
+    function setQuery(sql) {
+      document.getElementById('queryInput').value = sql;
+      runQuery();
+    }
+
+    async function runQuery() {
+      const sql = document.getElementById('queryInput').value.trim();
+      if (!sql) return;
+
+      document.getElementById('queryError').innerHTML = '';
+      document.getElementById('queryMeta').textContent = 'Running...';
+
+      try {
+        const res = await fetch('/api/admin/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sql }),
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          document.getElementById('queryError').innerHTML = `<div class="query-error">${esc(data.error)}</div>`;
+          document.getElementById('queryMeta').textContent = '';
+          return;
+        }
+
+        document.getElementById('queryMeta').textContent = `${data.rowCount} rows in ${data.duration}ms`;
+
+        if (!data.rows.length) {
+          document.getElementById('queryResults').innerHTML = '<p style="color:var(--text-muted);padding:1rem">No results</p>';
+          return;
+        }
+
+        const rows = data.rows.map(row => `
+          <tr>${row.map(val => {
+            if (val === null) return '<td class="null">NULL</td>';
+            if (typeof val === 'number') return '<td class="num">' + val + '</td>';
+            return '<td>' + esc(String(val)) + '</td>';
+          }).join('')}</tr>
+        `).join('');
+
+        document.getElementById('queryResults').innerHTML = `
+          <div class="data-table-wrap">
+            <div style="overflow-x:auto">
+              <table>
+                <thead><tr>${data.columns.map(c => '<th>' + c + '</th>').join('')}</tr></thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        document.getElementById('queryError').innerHTML = `<div class="query-error">${esc(err.message)}</div>`;
+        document.getElementById('queryMeta').textContent = '';
+      }
+    }
+
+    // Allow Cmd/Ctrl+Enter to run query
+    document.addEventListener('keydown', e => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && currentView?.type === 'query') {
+        runQuery();
+      }
+    });
+
+    function esc(s) {
+      if (s == null) return '';
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    init();
+  </script>
+</body>
+</html>

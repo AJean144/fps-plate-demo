@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FPS Plate Lookup API - Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #faf8f3;
+      --bg-warm: #f3efe6;
+      --bg-code: #1e2530;
+      --surface: #ffffff;
+      --surface-alt: #eeeade;
+      --border: #e5e0d5;
+      --border-light: #ede9df;
+      --text: #1a1a1a;
+      --text-secondary: #555;
+      --text-muted: #888;
+      --accent: #2d6a4f;
+      --accent-light: #40916c;
+      --accent-bg: rgba(45,106,79,0.06);
+      --accent-border: rgba(45,106,79,0.15);
+      --blue: #3b82f6;
+      --red: #dc2626;
+      --orange: #ea580c;
+      --purple: #7c3aed;
+      --code-green: #a3be8c;
+      --code-blue: #81a1c1;
+      --code-yellow: #ebcb8b;
+      --code-orange: #d08770;
+      --code-purple: #b48ead;
+      --code-red: #bf616a;
+      --code-text: #d8dee9;
+      --code-comment: #636f88;
+      --code-string: #a3be8c;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --sidebar-w: 280px;
+      --navbar-h: 64px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.6;
+    }
+
+    /* ── Navbar ── */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--navbar-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 1.5rem;
+      gap: 1rem;
+      z-index: 100;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text);
+      flex-shrink: 0;
+    }
+    .nav-logo {
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+    .nav-version {
+      font-size: 0.7rem;
+      font-weight: 600;
+      background: var(--bg-warm);
+      border: 1px solid var(--border);
+      padding: 0.2rem 0.6rem;
+      border-radius: 100px;
+      color: var(--text-secondary);
+    }
+    .nav-search {
+      flex: 1;
+      max-width: 400px;
+      margin: 0 1rem;
+    }
+    .nav-search-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.5rem 1rem 0.5rem 2.5rem;
+      font-family: inherit;
+      font-size: 0.85rem;
+      color: var(--text);
+      background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: 0.75rem center;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .nav-search-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-bg);
+    }
+    .nav-search-input::placeholder { color: var(--text-muted); }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .nav-link {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 0.4rem 0.75rem;
+      border-radius: var(--radius-sm);
+      transition: color 0.2s, background 0.2s;
+    }
+    .nav-link:hover { color: var(--text); background: var(--bg); }
+    .nav-link.primary {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+    .nav-link.primary:hover { background: var(--accent-light); }
+
+    /* ── Mobile menu ── */
+    .menu-toggle {
+      display: none;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.4rem;
+      cursor: pointer;
+      color: var(--text);
+    }
+
+    /* ── Layout ── */
+    .layout {
+      display: flex;
+      margin-top: var(--navbar-h);
+      min-height: calc(100vh - var(--navbar-h));
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      background: var(--surface);
+      padding: 1.5rem 0;
+      position: fixed;
+      top: var(--navbar-h);
+      left: 0;
+      bottom: 0;
+      overflow-y: auto;
+      z-index: 50;
+    }
+    .sidebar-section {
+      padding: 0 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .sidebar-heading {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.5rem;
+      padding: 0 0.5rem;
+    }
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.75rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+      transition: all 0.15s;
+    }
+    .sidebar-link:hover { background: var(--bg); color: var(--text); }
+    .sidebar-link.active {
+      background: var(--accent-bg);
+      color: var(--accent);
+      font-weight: 600;
+      border-left: 3px solid var(--accent);
+      margin-left: -3px;
+    }
+    .sidebar-link svg { flex-shrink: 0; opacity: 0.5; }
+    .sidebar-link.active svg { opacity: 1; }
+    .sidebar-sub {
+      padding-left: 1rem;
+      border-left: 1px solid var(--border-light);
+      margin-left: 1.25rem;
+      margin-top: 0.25rem;
+    }
+    .sidebar-sub .sidebar-link {
+      font-size: 0.82rem;
+      padding: 0.35rem 0.75rem;
+    }
+    .method-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+      font-weight: 600;
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+      letter-spacing: 0.02em;
+    }
+    .method-badge.get { background: rgba(16,185,129,0.12); color: #059669; }
+
+    /* ── Main content ── */
+    .main {
+      flex: 1;
+      margin-left: var(--sidebar-w);
+      padding: 2.5rem 3rem 4rem;
+      max-width: 860px;
+    }
+
+    /* ── Typography ── */
+    .main h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.5rem;
+      line-height: 1.2;
+    }
+    .main h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-top: 3rem;
+      margin-bottom: 0.75rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border-light);
+      scroll-margin-top: calc(var(--navbar-h) + 1rem);
+    }
+    .main h2:first-of-type { border-top: none; margin-top: 1.5rem; padding-top: 0; }
+    .main h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-top: 2rem;
+      margin-bottom: 0.5rem;
+      scroll-margin-top: calc(var(--navbar-h) + 1rem);
+    }
+    .main p {
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+      line-height: 1.7;
+    }
+    .main a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+    .main a:hover { color: var(--accent-light); }
+    .subtitle {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+    }
+    .inline-code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85em;
+      background: var(--bg-warm);
+      border: 1px solid var(--border);
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+
+    /* ── Code blocks ── */
+    .code-block {
+      background: var(--bg-code);
+      border-radius: var(--radius);
+      margin: 1rem 0 1.5rem;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 1rem;
+      background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .code-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: rgba(255,255,255,0.4);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .code-copy {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 5px;
+      padding: 0.25rem 0.5rem;
+      color: rgba(255,255,255,0.4);
+      font-size: 0.7rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .code-copy:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); }
+    .code-body {
+      padding: 1rem 1.25rem;
+      overflow-x: auto;
+    }
+    .code-body pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.65;
+      color: var(--code-text);
+      white-space: pre;
+    }
+    .hl-key { color: var(--code-blue); }
+    .hl-str { color: var(--code-green); }
+    .hl-num { color: var(--code-orange); }
+    .hl-bool { color: var(--code-orange); }
+    .hl-null { color: var(--code-purple); }
+    .hl-comment { color: var(--code-comment); font-style: italic; }
+    .hl-method { color: #a3be8c; font-weight: 600; }
+    .hl-url { color: var(--code-yellow); }
+    .hl-header { color: var(--code-purple); }
+    .hl-flag { color: var(--code-blue); }
+
+    /* ── Endpoint cards ── */
+    .endpoint-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 1rem 0 1.5rem;
+    }
+    .endpoint-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border-light);
+    }
+    .endpoint-method {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.3rem 0.6rem;
+      border-radius: 5px;
+      letter-spacing: 0.02em;
+    }
+    .endpoint-method.get { background: rgba(16,185,129,0.12); color: #059669; }
+    .endpoint-path {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .endpoint-path .param { color: var(--accent); }
+    .endpoint-body {
+      padding: 1.25rem;
+    }
+    .endpoint-desc {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+
+    /* ── Tables ── */
+    .param-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin: 0.75rem 0 1rem;
+    }
+    .param-table th {
+      text-align: left;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 2px solid var(--border);
+    }
+    .param-table td {
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid var(--border-light);
+      vertical-align: top;
+    }
+    .param-table tr:last-child td { border-bottom: none; }
+    .param-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+      font-size: 0.82rem;
+      color: var(--text);
+    }
+    .param-type {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .param-required {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--red);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── Callout boxes ── */
+    .callout {
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin: 1.25rem 0;
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    .callout svg { flex-shrink: 0; margin-top: 0.1rem; }
+    .callout-info {
+      background: var(--accent-bg);
+      border: 1px solid var(--accent-border);
+      color: var(--text-secondary);
+    }
+    .callout-info svg { color: var(--accent); }
+    .callout-warn {
+      background: rgba(245,158,11,0.06);
+      border: 1px solid rgba(245,158,11,0.15);
+      color: var(--text-secondary);
+    }
+    .callout-warn svg { color: #d97706; }
+    .callout-title {
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+      font-size: 0.9rem;
+    }
+
+    /* ── Status list ── */
+    .status-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.5rem 1rem;
+      margin: 0.75rem 0 1rem;
+      font-size: 0.88rem;
+    }
+    .status-code {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 0.82rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      text-align: center;
+      min-width: 42px;
+    }
+    .status-code.s2xx { background: rgba(16,185,129,0.1); color: #059669; }
+    .status-code.s4xx { background: rgba(239,68,68,0.08); color: #dc2626; }
+    .status-desc { color: var(--text-secondary); padding: 0.15rem 0; }
+
+    /* ── Nav footer ── */
+    .page-nav {
+      display: flex;
+      gap: 1rem;
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+    .page-nav-link {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 1rem 1.25rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .page-nav-link:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    .page-nav-link.next { justify-content: flex-end; }
+    .page-nav-link svg { color: var(--text-muted); flex-shrink: 0; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .nav-links { display: none; }
+      .nav-search { max-width: none; }
+      .menu-toggle { display: flex; }
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s;
+        box-shadow: 4px 0 16px rgba(0,0,0,0.1);
+      }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; padding: 1.5rem 1.25rem 3rem; }
+      .endpoint-header { flex-wrap: wrap; }
+    }
+
+    @media (max-width: 600px) {
+      .main h1 { font-size: 1.5rem; }
+      .main h2 { font-size: 1.25rem; }
+      .page-nav { flex-direction: column; }
+      .code-body pre { font-size: 0.75rem; }
+      .param-table { font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="/docs" class="nav-brand">
+      <span class="nav-logo">FPS API</span>
+      <span class="nav-version">v1.0.0</span>
+    </a>
+    <div class="nav-search">
+      <input type="text" class="nav-search-input" placeholder="Search documentation..." id="searchInput">
+    </div>
+    <div class="nav-links">
+      <a href="/" class="nav-link">Home</a>
+      <a href="/api/demo" class="nav-link">API Demo</a>
+      <a href="/swagger" class="nav-link">Swagger</a>
+      <a href="https://rapidfireagency.com" class="nav-link primary">RapidFire</a>
+    </div>
+    <button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')" aria-label="Toggle menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </nav>
+
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-heading">Overview</div>
+        <a href="#introduction" class="sidebar-link active" onclick="navTo(this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          Introduction
+        </a>
+        <a href="#authentication" class="sidebar-link" onclick="navTo(this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Authentication
+        </a>
+        <a href="#rate-limits" class="sidebar-link" onclick="navTo(this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Rate Limits
+        </a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-heading">Endpoints</div>
+        <a href="#plate-summary" class="sidebar-link" onclick="navTo(this)">
+          <span class="method-badge get">GET</span>
+          Plate Summary
+        </a>
+        <a href="#ticket-history" class="sidebar-link" onclick="navTo(this)">
+          <span class="method-badge get">GET</span>
+          Ticket History
+        </a>
+        <a href="#health-check" class="sidebar-link" onclick="navTo(this)">
+          <span class="method-badge get">GET</span>
+          Health Check
+        </a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-heading">Reference</div>
+        <a href="#response-codes" class="sidebar-link" onclick="navTo(this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Response Codes
+        </a>
+        <a href="#status-flags" class="sidebar-link" onclick="navTo(this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+          Status &amp; Flags
+        </a>
+        <a href="#data-models" class="sidebar-link" onclick="navTo(this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          Data Models
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main">
+
+      <!-- Introduction -->
+      <section id="introduction">
+        <h1>FPS Plate Lookup API</h1>
+        <p class="subtitle">REST API for real-time parking ticket status by license plate number.</p>
+
+        <p>Designed for integration with handheld enforcement devices, this API provides real-time ticket counts and outstanding balances for vehicles across participating municipalities in Nassau and Suffolk counties on Long Island, NY.</p>
+
+        <p>Enforcement officers use this data to make escalation decisions in the field — determining whether a vehicle is eligible for booting, towing, or has an active DMV registration hold.</p>
+
+        <div class="callout callout-info">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <div>
+            <div class="callout-title">Plate Normalization</div>
+            Plate numbers are normalized before lookup. Spaces, dashes, and case are ignored. For example, <span class="inline-code">ABC-1234</span>, <span class="inline-code">abc 1234</span>, and <span class="inline-code">ABC1234</span> all resolve to the same vehicle.
+          </div>
+        </div>
+
+        <h3>Base URL</h3>
+        <div class="code-block">
+          <div class="code-body">
+            <pre><span class="hl-comment"># Production</span>
+https://api.fps-services.com/api/v1
+
+<span class="hl-comment"># Development</span>
+http://localhost:3000/api/v1</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Authentication -->
+      <section id="authentication">
+        <h2>Authentication</h2>
+        <p>All plate lookup endpoints require an API key passed via the <span class="inline-code">X-API-Key</span> header. Keys are issued per municipality or integration partner.</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-label">Example Request</span>
+            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+          </div>
+          <div class="code-body">
+            <pre><span class="hl-method">curl</span> <span class="hl-flag">-H</span> <span class="hl-str">"X-API-Key: your-api-key"</span> \
+     <span class="hl-url">https://api.fps-services.com/api/v1/plates/KAB-3291</span></pre>
+          </div>
+        </div>
+
+        <div class="callout callout-warn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <div>
+            <div class="callout-title">Keep your API key secure</div>
+            Do not expose your API key in client-side code or public repositories. All requests are logged for audit purposes.
+          </div>
+        </div>
+      </section>
+
+      <!-- Rate Limits -->
+      <section id="rate-limits">
+        <h2>Rate Limits</h2>
+        <p>Plate lookup endpoints are limited to <strong>30 requests per minute</strong> per API key. The health check endpoint has no rate limit.</p>
+        <p>Rate limit headers are included in every response:</p>
+
+        <table class="param-table">
+          <thead><tr><th>Header</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">RateLimit-Limit</td><td>Maximum requests allowed per window</td></tr>
+            <tr><td class="param-name">RateLimit-Remaining</td><td>Requests remaining in current window</td></tr>
+            <tr><td class="param-name">RateLimit-Reset</td><td>Seconds until the rate limit window resets</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Plate Summary Endpoint -->
+      <section id="plate-summary">
+        <h2>Plate Summary Lookup</h2>
+        <p>Returns the ticket count, total outstanding balance, and enforcement status flags for a given license plate. This is the primary endpoint for enforcement officers.</p>
+
+        <div class="endpoint-card">
+          <div class="endpoint-header">
+            <span class="endpoint-method get">GET</span>
+            <span class="endpoint-path">/api/v1/plates/<span class="param">{plateNumber}</span></span>
+          </div>
+          <div class="endpoint-body">
+            <div class="endpoint-desc">An officer scans or enters a plate number on their handheld device. The device calls this endpoint and displays whether the vehicle has outstanding violations and whether escalated enforcement (boot/tow) is warranted.</div>
+
+            <h3>Parameters</h3>
+            <table class="param-table">
+              <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><span class="param-name">plateNumber</span> <span class="param-required">required</span></td>
+                  <td><span class="param-type">string (path)</span></td>
+                  <td>License plate number. Spaces, dashes, and case are ignored.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-label">Request</span>
+            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+          </div>
+          <div class="code-body">
+            <pre><span class="hl-method">curl</span> <span class="hl-flag">-H</span> <span class="hl-str">"X-API-Key: fps-demo-key-2024"</span> \
+     <span class="hl-url">http://localhost:3000/api/v1/plates/KSS-7744</span></pre>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-label">Response — 200 (Vehicle with violations)</span>
+            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+          </div>
+          <div class="code-body">
+            <pre>{
+  <span class="hl-key">"plate"</span>: <span class="hl-str">"KSS-7744"</span>,
+  <span class="hl-key">"normalized"</span>: <span class="hl-str">"KSS7744"</span>,
+  <span class="hl-key">"state"</span>: <span class="hl-str">"NY"</span>,
+  <span class="hl-key">"plateType"</span>: <span class="hl-str">"PAS"</span>,
+  <span class="hl-key">"vehicle"</span>: {
+    <span class="hl-key">"make"</span>: <span class="hl-str">"Infiniti"</span>,
+    <span class="hl-key">"model"</span>: <span class="hl-str">"Q50"</span>,
+    <span class="hl-key">"year"</span>: <span class="hl-num">2020</span>,
+    <span class="hl-key">"color"</span>: <span class="hl-str">"Black"</span>,
+    <span class="hl-key">"registrationExpires"</span>: <span class="hl-str">"2025-09-30"</span>
+  },
+  <span class="hl-key">"found"</span>: <span class="hl-bool">true</span>,
+  <span class="hl-key">"tickets"</span>: <span class="hl-num">7</span>,
+  <span class="hl-key">"unpaidTickets"</span>: <span class="hl-num">4</span>,
+  <span class="hl-key">"judgmentTickets"</span>: <span class="hl-num">3</span>,
+  <span class="hl-key">"totalOwed"</span>: <span class="hl-num">840.00</span>,
+  <span class="hl-key">"formattedOwed"</span>: <span class="hl-str">"$840.00"</span>,
+  <span class="hl-key">"status"</span>: <span class="hl-str">"TOW_ELIGIBLE"</span>,
+  <span class="hl-key">"flags"</span>: [<span class="hl-str">"BOOT_LIST"</span>, <span class="hl-str">"HIGH_BALANCE"</span>, <span class="hl-str">"TOW_LIST"</span>, <span class="hl-str">"DMV_HOLD"</span>],
+  <span class="hl-key">"mostRecentTicket"</span>: <span class="hl-str">"2025-11-01"</span>,
+  <span class="hl-key">"queriedAt"</span>: <span class="hl-str">"2026-03-16T14:30:00.000Z"</span>
+}</pre>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-label">Response — 200 (No record)</span>
+            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+          </div>
+          <div class="code-body">
+            <pre>{
+  <span class="hl-key">"plate"</span>: <span class="hl-str">"UNKNOWN"</span>,
+  <span class="hl-key">"normalized"</span>: <span class="hl-str">"UNKNOWN"</span>,
+  <span class="hl-key">"found"</span>: <span class="hl-bool">false</span>,
+  <span class="hl-key">"tickets"</span>: <span class="hl-num">0</span>,
+  <span class="hl-key">"totalOwed"</span>: <span class="hl-num">0</span>,
+  <span class="hl-key">"status"</span>: <span class="hl-str">"NO_RECORD"</span>,
+  <span class="hl-key">"message"</span>: <span class="hl-str">"No tickets found for this plate."</span>
+}</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Ticket History Endpoint -->
+      <section id="ticket-history">
+        <h2>Full Ticket History</h2>
+        <p>Returns the complete ticket history for a license plate, including individual ticket details, fine breakdowns, and payment status.</p>
+
+        <div class="endpoint-card">
+          <div class="endpoint-header">
+            <span class="endpoint-method get">GET</span>
+            <span class="endpoint-path">/api/v1/plates/<span class="param">{plateNumber}</span>/tickets</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="endpoint-desc">After an officer sees the summary, they may want to drill into the specific violations — when they were issued, where, and what type.</div>
+
+            <h3>Parameters</h3>
+            <table class="param-table">
+              <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><span class="param-name">plateNumber</span> <span class="param-required">required</span></td>
+                  <td><span class="param-type">string (path)</span></td>
+                  <td>License plate number. Spaces, dashes, and case are ignored.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-label">Response — 200 (Ticket detail)</span>
+            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+          </div>
+          <div class="code-body">
+            <pre>{
+  <span class="hl-key">"plate"</span>: <span class="hl-str">"KAB-3291"</span>,
+  <span class="hl-key">"state"</span>: <span class="hl-str">"NY"</span>,
+  <span class="hl-key">"vehicle"</span>: { <span class="hl-key">"make"</span>: <span class="hl-str">"Toyota"</span>, <span class="hl-key">"model"</span>: <span class="hl-str">"Camry"</span>, <span class="hl-key">"year"</span>: <span class="hl-num">2021</span> },
+  <span class="hl-key">"found"</span>: <span class="hl-bool">true</span>,
+  <span class="hl-key">"summary"</span>: {
+    <span class="hl-key">"totalTickets"</span>: <span class="hl-num">4</span>,
+    <span class="hl-key">"totalFines"</span>: <span class="hl-num">315.00</span>,
+    <span class="hl-key">"totalLateFees"</span>: <span class="hl-num">100.00</span>,
+    <span class="hl-key">"totalPayments"</span>: <span class="hl-num">0</span>,
+    <span class="hl-key">"totalOwed"</span>: <span class="hl-num">415.00</span>,
+    <span class="hl-key">"formattedOwed"</span>: <span class="hl-str">"$415.00"</span>
+  },
+  <span class="hl-key">"tickets"</span>: [
+    {
+      <span class="hl-key">"ticket_number"</span>: <span class="hl-str">"VHMP-2025-004821"</span>,
+      <span class="hl-key">"violation_code"</span>: <span class="hl-str">"PKV-01"</span>,
+      <span class="hl-key">"violation_desc"</span>: <span class="hl-str">"Expired Meter"</span>,
+      <span class="hl-key">"issue_date"</span>: <span class="hl-str">"2025-06-12"</span>,
+      <span class="hl-key">"issue_time"</span>: <span class="hl-str">"09:42"</span>,
+      <span class="hl-key">"fine_amount"</span>: <span class="hl-num">50.00</span>,
+      <span class="hl-key">"late_fee"</span>: <span class="hl-num">25.00</span>,
+      <span class="hl-key">"payment_amount"</span>: <span class="hl-num">0</span>,
+      <span class="hl-key">"status"</span>: <span class="hl-str">"UNPAID"</span>,
+      <span class="hl-key">"location"</span>: <span class="hl-str">"185 Main St, Hempstead"</span>,
+      <span class="hl-key">"municipality"</span>: <span class="hl-str">"Village of Hempstead"</span>,
+      <span class="hl-key">"county"</span>: <span class="hl-str">"Nassau"</span>,
+      <span class="hl-key">"balance_due"</span>: <span class="hl-num">75.00</span>,
+      <span class="hl-key">"dmv_reported"</span>: <span class="hl-bool">false</span>
+    }
+    <span class="hl-comment">// ... additional tickets</span>
+  ]
+}</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Health Check -->
+      <section id="health-check">
+        <h2>Health Check</h2>
+        <p>Returns the current status of the API and database. No authentication required.</p>
+
+        <div class="endpoint-card">
+          <div class="endpoint-header">
+            <span class="endpoint-method get">GET</span>
+            <span class="endpoint-path">/api/v1/health</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="endpoint-desc">Use this endpoint for uptime monitoring and connectivity checks. No API key is required.</div>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-label">Response — 200</span>
+            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+          </div>
+          <div class="code-body">
+            <pre>{
+  <span class="hl-key">"service"</span>: <span class="hl-str">"FPS Plate Lookup API"</span>,
+  <span class="hl-key">"version"</span>: <span class="hl-str">"1.0.0"</span>,
+  <span class="hl-key">"status"</span>: <span class="hl-str">"operational"</span>,
+  <span class="hl-key">"database"</span>: <span class="hl-str">"healthy"</span>,
+  <span class="hl-key">"stats"</span>: { <span class="hl-key">"ticketsInSystem"</span>: <span class="hl-num">58</span> },
+  <span class="hl-key">"timestamp"</span>: <span class="hl-str">"2026-03-16T14:30:00.000Z"</span>
+}</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Response Codes -->
+      <section id="response-codes">
+        <h2>Response Codes</h2>
+        <p>All endpoints return standard HTTP status codes.</p>
+
+        <div class="status-grid">
+          <span class="status-code s2xx">200</span><span class="status-desc">Successful lookup. Response body contains the requested data.</span>
+          <span class="status-code s4xx">401</span><span class="status-desc">Missing or invalid API key. Include <span class="inline-code">X-API-Key</span> header.</span>
+          <span class="status-code s4xx">404</span><span class="status-desc">Endpoint not found. Check the URL path.</span>
+          <span class="status-code s4xx">429</span><span class="status-desc">Rate limit exceeded. Wait and retry after the reset window.</span>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-label">Error Response Format</span>
+          </div>
+          <div class="code-body">
+            <pre>{
+  <span class="hl-key">"error"</span>: <span class="hl-str">"Unauthorized"</span>,
+  <span class="hl-key">"message"</span>: <span class="hl-str">"Missing API key. Include X-API-Key header."</span>
+}</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Status & Flags -->
+      <section id="status-flags">
+        <h2>Status &amp; Flags</h2>
+        <p>The plate summary endpoint returns a <span class="inline-code">status</span> field and a <span class="inline-code">flags</span> array to help officers make enforcement decisions.</p>
+
+        <h3>Enforcement Status</h3>
+        <table class="param-table">
+          <thead><tr><th>Status</th><th>Condition</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">NO_RECORD</td><td>No tickets found for this plate</td><td>No action needed</td></tr>
+            <tr><td class="param-name">CLEAR</td><td>All tickets are paid</td><td>No action needed</td></tr>
+            <tr><td class="param-name">OUTSTANDING</td><td>Has unpaid tickets (fewer than 3)</td><td>Standard enforcement</td></tr>
+            <tr><td class="param-name">BOOT_ELIGIBLE</td><td>3+ unpaid tickets in 18 months</td><td>Eligible for boot per NYS VTL</td></tr>
+            <tr><td class="param-name">TOW_ELIGIBLE</td><td>Balance &ge; $500</td><td>Eligible for tow</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Alert Flags</h3>
+        <table class="param-table">
+          <thead><tr><th>Flag</th><th>Trigger</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">BOOT_LIST</td><td>3 or more unpaid/judgment tickets</td></tr>
+            <tr><td class="param-name">HIGH_BALANCE</td><td>Outstanding balance &ge; $200</td></tr>
+            <tr><td class="param-name">TOW_LIST</td><td>Outstanding balance &ge; $500</td></tr>
+            <tr><td class="param-name">DMV_HOLD</td><td>3+ tickets reported to DMV (registration hold per NYS VTL 241)</td></tr>
+            <tr><td class="param-name">JUDGMENTS_OUTSTANDING</td><td>One or more tickets in default judgment (90+ days unpaid)</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Data Models -->
+      <section id="data-models">
+        <h2>Data Models</h2>
+        <p>Reference for all data types returned by the API.</p>
+
+        <h3>Ticket Object</h3>
+        <table class="param-table">
+          <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">ticket_number</td><td class="param-type">string</td><td>Unique ID (format: MUNICIPALITY-YEAR-SEQUENCE)</td></tr>
+            <tr><td class="param-name">violation_code</td><td class="param-type">string</td><td>Internal violation code (e.g., PKV-01)</td></tr>
+            <tr><td class="param-name">violation_desc</td><td class="param-type">string</td><td>Human-readable violation description</td></tr>
+            <tr><td class="param-name">issue_date</td><td class="param-type">date</td><td>Date ticket was issued (YYYY-MM-DD)</td></tr>
+            <tr><td class="param-name">issue_time</td><td class="param-type">string</td><td>Time ticket was issued (HH:MM)</td></tr>
+            <tr><td class="param-name">fine_amount</td><td class="param-type">number</td><td>Original fine in dollars</td></tr>
+            <tr><td class="param-name">late_fee</td><td class="param-type">number</td><td>Accumulated late penalties</td></tr>
+            <tr><td class="param-name">payment_amount</td><td class="param-type">number</td><td>Total payments applied</td></tr>
+            <tr><td class="param-name">status</td><td class="param-type">string</td><td>UNPAID, PARTIAL, PAID, JUDGMENT, DISPUTED, DISMISSED</td></tr>
+            <tr><td class="param-name">location</td><td class="param-type">string</td><td>Street address where issued</td></tr>
+            <tr><td class="param-name">municipality</td><td class="param-type">string</td><td>Issuing municipality name</td></tr>
+            <tr><td class="param-name">county</td><td class="param-type">string</td><td>Nassau or Suffolk</td></tr>
+            <tr><td class="param-name">balance_due</td><td class="param-type">number</td><td>Remaining balance (fine + late - payments)</td></tr>
+            <tr><td class="param-name">dmv_reported</td><td class="param-type">boolean</td><td>Whether this judgment was reported to NYS DMV</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Vehicle Object</h3>
+        <table class="param-table">
+          <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">make</td><td class="param-type">string</td><td>Vehicle manufacturer (e.g., Toyota)</td></tr>
+            <tr><td class="param-name">model</td><td class="param-type">string</td><td>Vehicle model (e.g., Camry)</td></tr>
+            <tr><td class="param-name">year</td><td class="param-type">integer</td><td>Model year</td></tr>
+            <tr><td class="param-name">color</td><td class="param-type">string</td><td>Vehicle color</td></tr>
+            <tr><td class="param-name">registrationExpires</td><td class="param-type">date</td><td>NYS registration expiration date</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Page navigation -->
+      <div class="page-nav">
+        <a href="/api/demo" class="page-nav-link">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          API Demo
+        </a>
+        <a href="/swagger" class="page-nav-link next">
+          Interactive Swagger
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </a>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    // Sidebar active state
+    function navTo(el) {
+      document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+      el.classList.add('active');
+      // Close mobile sidebar
+      document.getElementById('sidebar').classList.remove('open');
+    }
+
+    // Scroll spy
+    const sections = document.querySelectorAll('section[id]');
+    const sidebarLinks = document.querySelectorAll('.sidebar-link[href^="#"]');
+
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        const top = section.offsetTop - 100;
+        if (window.scrollY >= top) current = section.getAttribute('id');
+      });
+      sidebarLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + current) link.classList.add('active');
+      });
+    });
+
+    // Copy code
+    function copyCode(btn) {
+      const code = btn.closest('.code-block').querySelector('pre').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 1500);
+      });
+    }
+
+    // Search (simple filter)
+    document.getElementById('searchInput').addEventListener('input', function(e) {
+      const q = e.target.value.toLowerCase();
+      sections.forEach(section => {
+        const match = !q || section.textContent.toLowerCase().includes(q);
+        section.style.display = match ? '' : 'none';
+      });
+    });
+  </script>
+</body>
+</html>

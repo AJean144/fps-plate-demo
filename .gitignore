@@ -1,0 +1,10 @@
+node_modules/
+.env
+local.db
+*.db
+
+# Claude Code local settings
+.claude/
+
+# npm lock (we use pnpm)
+package-lock.json
