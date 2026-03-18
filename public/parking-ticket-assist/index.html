@@ -930,10 +930,8 @@
     function goToMunicipality() {
       const val = select.value;
       if (val) {
-        // In production this would route to the agreement/search flow
-        // For the demo, we show an alert
-        window.location.hash = 'municipality-' + val;
-        alert('This would navigate to the ' + select.options[select.selectedIndex].text + ' ticket search flow.\n\nThis is a demo — the full flow is under development.');
+        const name = select.options[select.selectedIndex].text;
+        window.location.href = '/parking-ticket-assist/search.html?m=' + encodeURIComponent(val) + '&name=' + encodeURIComponent(name);
       }
     }
 
@@ -950,9 +948,7 @@
       chip.innerHTML = `<span class="muni-dot"></span>${m.name}`;
       chip.addEventListener('click', (e) => {
         e.preventDefault();
-        select.value = m.slug;
-        heroBtn.disabled = false;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.location.href = '/parking-ticket-assist/search.html?m=' + encodeURIComponent(m.slug) + '&name=' + encodeURIComponent(m.name);
       });
       muniGrid.appendChild(chip);
     });

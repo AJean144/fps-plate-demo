@@ -38,6 +38,11 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'parking-ticket-assist', 'index.html'));
 });
 
+// Parking Ticket Assist search flow
+app.get('/parking-ticket-assist/search.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'parking-ticket-assist', 'search.html'));
+});
+
 // ── API Demo & Docs ──
 // Plate lookup demo
 app.get('/api/demo', (req, res) => {
