@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FPS Dashboard — Ticket Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #faf8f3;
+      --surface: #ffffff;
+      --surface-alt: #f3efe6;
+      --border: #e5e0d5;
+      --text: #1a1a1a;
+      --text-secondary: #555;
+      --text-muted: #888;
+      --accent: #2d6a4f;
+      --accent-light: #40916c;
+      --gold: #c9952d;
+      --gold-bg: rgba(201,149,45,0.08);
+      --red: #dc2626;
+      --blue: #3b82f6;
+      --amber: #f59e0b;
+      --radius: 12px;
+      --navbar-h: 60px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.5;
+    }
+
+    /* ── Navbar ── */
+    .navbar {
+      position: sticky;
+      top: 0;
+      height: var(--navbar-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 1.5rem;
+      gap: 1.5rem;
+      z-index: 100;
+    }
+    .nav-brand {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.25rem;
+      color: var(--text);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .nav-badge {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: var(--gold-bg);
+      color: var(--gold);
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+    }
+    .nav-links {
+      margin-left: auto;
+      display: flex;
+      gap: 1rem;
+    }
+    .nav-links a {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .nav-links a:hover { color: var(--accent); }
+
+    /* ── Filter Bar ── */
+    .filter-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .filter-bar label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .filter-bar select,
+    .filter-bar input[type="date"] {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      padding: 0.4rem 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+    }
+    .filter-bar select:focus,
+    .filter-bar input[type="date"]:focus {
+      border-color: var(--accent);
+    }
+    .filter-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 0.5rem;
+    }
+    .btn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.4rem 1rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--accent-light); }
+    .btn-secondary {
+      background: var(--surface-alt);
+      color: var(--text-secondary);
+    }
+    .btn-secondary:hover { background: var(--border); }
+
+    /* ── Content ── */
+    .content {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+
+    /* ── KPI Cards ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }
+    .kpi-card:nth-child(1)::before { background: var(--accent); }
+    .kpi-card:nth-child(2)::before { background: var(--gold); }
+    .kpi-card:nth-child(3)::before { background: var(--blue); }
+    .kpi-card:nth-child(4)::before { background: var(--red); }
+    .kpi-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+    .kpi-value {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.8rem;
+      line-height: 1.1;
+      color: var(--text);
+    }
+    .kpi-value.loading {
+      color: var(--text-muted);
+      font-size: 1.2rem;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    /* ── Chart Cards ── */
+    .chart-row {
+      display: grid;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .chart-row.r1 { grid-template-columns: 3fr 2fr; }
+    .chart-row.r2 { grid-template-columns: 1fr 1fr; }
+
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+    }
+    .chart-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+    }
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+    }
+    .chart-wrap.bar-chart { height: 300px; }
+    .chart-wrap.doughnut-chart { height: 280px; }
+    .chart-wrap.h-bar-chart { height: 300px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 1024px) {
+      .chart-row.r1, .chart-row.r2 { grid-template-columns: 1fr; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .kpi-grid { grid-template-columns: 1fr; }
+      .filter-bar { flex-direction: column; align-items: stretch; }
+      .filter-actions { margin-left: 0; justify-content: flex-end; }
+      .content { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="/dashboard" class="nav-brand">FPS Dashboard <span class="nav-badge">Analytics</span></a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/api/demo">API Demo</a>
+      <a href="/docs">Docs</a>
+      <a href="/api/admin">Admin</a>
+    </div>
+  </nav>
+
+  <!-- Filter Bar -->
+  <div class="filter-bar">
+    <label>From <input type="date" id="filterStartDate"></label>
+    <label>To <input type="date" id="filterEndDate"></label>
+    <label>County
+      <select id="filterCounty">
+        <option value="">All Counties</option>
+        <option value="Nassau">Nassau</option>
+        <option value="Suffolk">Suffolk</option>
+      </select>
+    </label>
+    <label>Municipality
+      <select id="filterMunicipality">
+        <option value="">All Municipalities</option>
+      </select>
+    </label>
+    <div class="filter-actions">
+      <button class="btn btn-secondary" onclick="resetFilters()">Reset</button>
+      <button class="btn btn-primary" onclick="applyFilters()">Apply</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Tickets</div>
+        <div class="kpi-value loading" id="kpiTickets">--</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Total Assessed</div>
+        <div class="kpi-value loading" id="kpiAssessed">--</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Collection Rate</div>
+        <div class="kpi-value loading" id="kpiRate">--</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Outstanding Balance</div>
+        <div class="kpi-value loading" id="kpiOutstanding">--</div>
+      </div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="chart-row r1">
+      <div class="chart-card">
+        <div class="chart-title">Ticket Volume &amp; Revenue by Month</div>
+        <div class="chart-wrap bar-chart">
+          <canvas id="chartVolume"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Status Breakdown</div>
+        <div class="chart-wrap doughnut-chart">
+          <canvas id="chartStatus"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="chart-row r2">
+      <div class="chart-card">
+        <div class="chart-title">Top Municipalities by Volume</div>
+        <div class="chart-wrap h-bar-chart">
+          <canvas id="chartMuni"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Violation Type Distribution</div>
+        <div class="chart-wrap doughnut-chart">
+          <canvas id="chartViolation"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── State ──
+    let allMunicipalities = [];
+    let charts = {};
+
+    const STATUS_COLORS = {
+      PAID: '#2d6a4f',
+      UNPAID: '#c9952d',
+      JUDGMENT: '#dc2626',
+      DISMISSED: '#999999',
+      DISPUTED: '#3b82f6',
+      PARTIAL: '#f59e0b',
+    };
+
+    const VIOLATION_COLORS = [
+      '#2d6a4f', '#c9952d', '#3b82f6', '#dc2626', '#f59e0b',
+      '#7c3aed', '#06b6d4', '#ec4899', '#84cc16', '#f97316',
+      '#6366f1', '#14b8a6', '#e11d48',
+    ];
+
+    // ── Helpers ──
+    function fmt(n) {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n);
+    }
+
+    function buildQS() {
+      const p = new URLSearchParams();
+      const s = document.getElementById('filterStartDate').value;
+      const e = document.getElementById('filterEndDate').value;
+      const c = document.getElementById('filterCounty').value;
+      const m = document.getElementById('filterMunicipality').value;
+      if (s) p.set('start_date', s);
+      if (e) p.set('end_date', e);
+      if (c) p.set('county', c);
+      if (m) p.set('municipality_id', m);
+      const qs = p.toString();
+      return qs ? '?' + qs : '';
+    }
+
+    // ── Filter Logic ──
+    async function loadFilters() {
+      try {
+        const res = await fetch('/api/dashboard/filters');
+        const data = await res.json();
+        allMunicipalities = data.municipalities;
+        if (data.date_range.min) document.getElementById('filterStartDate').value = data.date_range.min;
+        if (data.date_range.max) document.getElementById('filterEndDate').value = data.date_range.max;
+        populateMuniDropdown();
+      } catch (e) {
+        console.error('Failed to load filters:', e);
+      }
+    }
+
+    function populateMuniDropdown() {
+      const county = document.getElementById('filterCounty').value;
+      const sel = document.getElementById('filterMunicipality');
+      const current = sel.value;
+      sel.innerHTML = '<option value="">All Municipalities</option>';
+      const filtered = county
+        ? allMunicipalities.filter(m => m.county === county)
+        : allMunicipalities;
+      filtered.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.name;
+        sel.appendChild(opt);
+      });
+      // restore selection if still valid
+      if (current && filtered.some(m => String(m.id) === current)) {
+        sel.value = current;
+      }
+    }
+
+    document.getElementById('filterCounty').addEventListener('change', populateMuniDropdown);
+
+    function resetFilters() {
+      document.getElementById('filterStartDate').value = '';
+      document.getElementById('filterEndDate').value = '';
+      document.getElementById('filterCounty').value = '';
+      populateMuniDropdown();
+      document.getElementById('filterMunicipality').value = '';
+      loadAllData();
+    }
+
+    function applyFilters() {
+      loadAllData();
+    }
+
+    // ── Data Loading ──
+    async function loadAllData() {
+      const qs = buildQS();
+      const endpoints = ['summary', 'volume-by-month', 'by-status', 'by-municipality', 'by-violation'];
+
+      try {
+        const results = await Promise.all(
+          endpoints.map(ep => fetch('/api/dashboard/' + ep + qs).then(r => r.json()))
+        );
+        renderSummary(results[0]);
+        renderVolumeChart(results[1]);
+        renderStatusChart(results[2]);
+        renderMuniChart(results[3]);
+        renderViolationChart(results[4]);
+      } catch (e) {
+        console.error('Failed to load dashboard data:', e);
+      }
+    }
+
+    // ── Renderers ──
+    function renderSummary(d) {
+      const el = (id) => document.getElementById(id);
+      el('kpiTickets').textContent = d.total_tickets.toLocaleString();
+      el('kpiTickets').classList.remove('loading');
+      el('kpiAssessed').textContent = fmt(d.total_assessed);
+      el('kpiAssessed').classList.remove('loading');
+      el('kpiRate').textContent = d.collection_rate + '%';
+      el('kpiRate').classList.remove('loading');
+      el('kpiOutstanding').textContent = fmt(d.outstanding_balance);
+      el('kpiOutstanding').classList.remove('loading');
+    }
+
+    function renderVolumeChart(data) {
+      const ctx = document.getElementById('chartVolume');
+      if (charts.volume) charts.volume.destroy();
+
+      charts.volume = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: data.map(d => d.month),
+          datasets: [
+            {
+              label: 'Tickets',
+              data: data.map(d => d.ticket_count),
+              backgroundColor: 'rgba(45,106,79,0.7)',
+              borderRadius: 4,
+              yAxisID: 'y',
+            },
+            {
+              label: 'Revenue',
+              data: data.map(d => d.revenue),
+              type: 'line',
+              borderColor: '#c9952d',
+              backgroundColor: 'rgba(201,149,45,0.1)',
+              borderWidth: 2,
+              pointRadius: 3,
+              fill: true,
+              tension: 0.3,
+              yAxisID: 'y1',
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { position: 'bottom', labels: { font: { family: 'DM Sans', size: 12 } } } },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { family: 'DM Sans', size: 11 } } },
+            y: {
+              position: 'left',
+              title: { display: true, text: 'Tickets', font: { family: 'DM Sans', size: 12 } },
+              ticks: { font: { family: 'DM Sans', size: 11 } },
+              grid: { color: 'rgba(0,0,0,0.05)' },
+            },
+            y1: {
+              position: 'right',
+              title: { display: true, text: 'Revenue ($)', font: { family: 'DM Sans', size: 12 } },
+              ticks: { font: { family: 'DM Sans', size: 11 }, callback: v => '$' + v },
+              grid: { drawOnChartArea: false },
+            },
+          },
+        },
+      });
+    }
+
+    function renderStatusChart(data) {
+      const ctx = document.getElementById('chartStatus');
+      if (charts.status) charts.status.destroy();
+
+      charts.status = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: data.map(d => d.status),
+          datasets: [{
+            data: data.map(d => d.ticket_count),
+            backgroundColor: data.map(d => STATUS_COLORS[d.status] || '#ccc'),
+            borderWidth: 2,
+            borderColor: '#fff',
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '55%',
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { family: 'DM Sans', size: 12 }, padding: 16 } },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                  const pct = Math.round(ctx.raw / total * 100);
+                  return ctx.label + ': ' + ctx.raw + ' (' + pct + '%)';
+                }
+              }
+            }
+          },
+        },
+      });
+    }
+
+    function renderMuniChart(data) {
+      const ctx = document.getElementById('chartMuni');
+      if (charts.muni) charts.muni.destroy();
+
+      charts.muni = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: data.map(d => d.name.replace(/^(Village of |Town of |City of )/, '')),
+          datasets: [{
+            label: 'Tickets',
+            data: data.map(d => d.ticket_count),
+            backgroundColor: 'rgba(45,106,79,0.65)',
+            borderRadius: 4,
+          }],
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              ticks: { font: { family: 'DM Sans', size: 11 } },
+              grid: { color: 'rgba(0,0,0,0.05)' },
+            },
+            y: {
+              ticks: { font: { family: 'DM Sans', size: 11 } },
+              grid: { display: false },
+            },
+          },
+        },
+      });
+    }
+
+    function renderViolationChart(data) {
+      const ctx = document.getElementById('chartViolation');
+      if (charts.violation) charts.violation.destroy();
+
+      // Take top 8 + bundle rest into "Other"
+      let chartData = data;
+      if (data.length > 8) {
+        const top = data.slice(0, 8);
+        const other = data.slice(8).reduce((acc, d) => acc + d.ticket_count, 0);
+        top.push({ description: 'Other', ticket_count: other, total_fines: 0 });
+        chartData = top;
+      }
+
+      charts.violation = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: chartData.map(d => d.description),
+          datasets: [{
+            data: chartData.map(d => d.ticket_count),
+            backgroundColor: chartData.map((_, i) => VIOLATION_COLORS[i % VIOLATION_COLORS.length]),
+            borderWidth: 2,
+            borderColor: '#fff',
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '55%',
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { family: 'DM Sans', size: 11 }, padding: 12 } },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                  const pct = Math.round(ctx.raw / total * 100);
+                  return ctx.label + ': ' + ctx.raw + ' (' + pct + '%)';
+                }
+              }
+            }
+          },
+        },
+      });
+    }
+
+    // ── Init ──
+    loadFilters().then(() => loadAllData());
+  </script>
+</body>
+</html>

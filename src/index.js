@@ -14,6 +14,7 @@ const { auditLog, getAuditLogs } = require('./middleware/auditLog');
 const platesRouter = require('./routes/plates');
 const healthRouter = require('./routes/health');
 const adminRouter = require('./routes/admin');
+const dashboardRouter = require('./routes/dashboard');
 
 // Load OpenAPI spec
 const specFile = fs.readFileSync(path.join(__dirname, '..', 'docs', 'openapi.yaml'), 'utf8');
@@ -79,6 +80,12 @@ app.use('/api/v1/plates',
   platesRouter
 );
 
+// Dashboard API + page
+app.use('/api/dashboard', dashboardRouter);
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'dashboard.html'));
+});
+
 // Database explorer & admin
 app.use('/api/admin', adminRouter);
 
@@ -124,6 +131,7 @@ async function start() {
 ║   Parking Ticket:    http://localhost:${PORT}/                 ║
 ║   API Demo:          http://localhost:${PORT}/api/demo         ║
 ║   API Docs:          http://localhost:${PORT}/docs              ║
+║   Dashboard:         http://localhost:${PORT}/dashboard          ║
 ║   Swagger:           http://localhost:${PORT}/swagger           ║
 ║   Health:            http://localhost:${PORT}/api/v1/health    ║
 ║                                                              ║
